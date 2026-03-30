@@ -10,6 +10,7 @@
         .wrong { border-color: #EF4444; background-color: #FEF2F2; }
         @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
         .shake { animation: shake 0.2s ease-in-out 0s 2; }
+        .loading-pulse { opacity: 0.5; pointer-events: none; }
     </style>
 </head>
 <body class="bg-slate-100 min-h-screen flex items-center justify-center p-4">
@@ -39,7 +40,7 @@
             </div>
 
             <div class="text-center bg-slate-50 py-10 rounded-2xl border border-slate-100">
-                <button onclick="playCurrentWord()" class="bg-white shadow-md hover:shadow-lg p-6 rounded-full transition-all hover:scale-110 active:scale-90 border border-slate-100">
+                <button id="audio-btn" onclick="playCurrentWord()" class="bg-white shadow-md hover:shadow-lg p-6 rounded-full transition-all hover:scale-110 active:scale-90 border border-slate-100">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
                     </svg>
@@ -59,7 +60,7 @@
                 <div id="hint-display" class="hidden animate-fadeIn">
                     <div class="bg-white border-l-4 border-indigo-400 p-4 rounded-r-lg shadow-sm">
                         <p id="hint-type" class="text-[10px] uppercase font-black text-indigo-400 mb-1"></p>
-                        <p id="hint-content" class="text-slate-700 text-sm leading-relaxed"></p>
+                        <p id="hint-content" class="text-slate-700 text-sm leading-relaxed whitespace-pre-wrap"></p>
                     </div>
                 </div>
             </div>
@@ -72,10 +73,12 @@
         let wordList = [];
         let currentIndex = 0;
         let score = 0;
-
+        let currentApiData = null;
+        
         const fileInput = document.getElementById('file-input');
         const startBtn = document.getElementById('start-btn');
         const fileNameDisplay = document.getElementById('file-name');
+        const audioBtn = document.getElementById('audio-btn');
 
         // 1. 處理檔案上傳
         fileInput.addEventListener('change', function(e) {
@@ -105,45 +108,79 @@
             showQuestion();
         };
 
-        // 2. 核心遊戲邏輯
+        // API 請求
+        async function fetchExternalData(word) {
+            try {
+                const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`);
+                if (!response.ok) return null;
+                const data = await response.json();
+                return data[0]; 
+            } catch (err) {
+                return null;
+            }
+        }
+
         function playCurrentWord() {
+            if (currentApiData && currentApiData.phonetics) {
+                const audioObj = currentApiData.phonetics.find(p => p.audio && p.audio !== "");
+                if (audioObj) {
+                    const audio = new Audio(audioObj.audio);
+                    audio.play().catch(e => useWebSpeech());
+                    return;
+                }
+            }
+            useWebSpeech();
+        }
+
+        function useWebSpeech() {
             const msg = new SpeechSynthesisUtterance(wordList[currentIndex].word);
             msg.lang = 'en-US';
-            msg.rate = 0.85;
+            msg.rate = 0.8;
             window.speechSynthesis.speak(msg);
         }
 
-        function showQuestion() {
+        // 顯示題目
+        async function showQuestion() {
             const input = document.getElementById('user-input');
             const hintBox = document.getElementById('hint-display');
+            
             document.getElementById('feedback').innerText = '';
             document.getElementById('progress-text').innerText = `Word ${currentIndex + 1}/${wordList.length}`;
             
             input.value = '';
             input.className = input.className.replace('correct', '').replace('wrong', '');
             hintBox.classList.add('hidden');
+            audioBtn.classList.add('loading-pulse');
+            currentApiData = await fetchExternalData(wordList[currentIndex].word);
+            audioBtn.classList.remove('loading-pulse');
             
-            setTimeout(playCurrentWord, 600);
+            setTimeout(playCurrentWord, 400);
             input.focus();
         }
 
-        // 顯示提示 (中文或字源)
+        // 顯示提示
         function showHint(type) {
             const hintBox = document.getElementById('hint-display');
             const typeLabel = document.getElementById('hint-type');
             const content = document.getElementById('hint-content');
-            
+
             hintBox.classList.remove('hidden');
+
             if (type === 'definition') {
-                typeLabel.innerText = "Definition / 中文定義";
-                content.innerText = wordList[currentIndex].definition || "無提供定義";
+                typeLabel.innerText = "Definition / 詳細定義";
+                let def = wordList[currentIndex].definition || "";
+                if (currentApiData && currentApiData.meanings) {
+                    const m = currentApiData.meanings[0].definitions[0];
+                    def += `\n\n[API]: ${m.definition}`;
+                    if (m.example) def += `\nExample: "${m.example}"`;
+                }
+                content.innerText = def || "無提供定義";
             } else {
                 typeLabel.innerText = "Etymology / 字源";
-                content.innerText = wordList[currentIndex].etymology || "目前無此字源資料";
+                content.innerText = wordList[currentIndex].etymology || "目前 JSON 無此字源資料。";
             }
         }
 
-        // 3. 輸入校驗
         document.getElementById('user-input').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') checkAnswer();
         });
@@ -156,8 +193,8 @@
 
             if (userAnswer === correctAnswer) {
                 input.classList.add('correct');
-                feedback.innerText = 'EXCELLENT!';
-                feedback.className = 'text-center font-bold text-emerald-500 scale-110 transition-transform';
+                feedback.innerText = 'EXCELLENT! ';
+                feedback.className = 'text-center font-bold text-emerald-500';
                 score += 10;
                 document.getElementById('score-text').innerText = `Score: ${score}`;
                 
@@ -165,7 +202,7 @@
                     currentIndex++;
                     if (currentIndex < wordList.length) showQuestion();
                     else finishGame();
-                }, 1200);
+                }, 1000);
             } else {
                 input.classList.add('wrong', 'shake');
                 feedback.innerText = 'TRY AGAIN';
