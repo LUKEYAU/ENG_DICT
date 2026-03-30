@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>English Learning Tool - Etymology Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .correct { border-color: #10B981; background-color: #ECFDF5; }
+        .wrong { border-color: #EF4444; background-color: #FEF2F2; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+        .shake { animation: shake 0.2s ease-in-out 0s 2; }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen flex items-center justify-center p-4">
+
+    <div class="bg-white p-8 rounded-3xl shadow-2xl max-w-lg w-full border border-slate-200">
+        <h1 class="text-3xl font-black text-indigo-600 mb-2 text-center">Spelling Master</h1>
+        <p class="text-slate-400 text-center text-sm mb-8">提升拼寫能力與字源知識</p>
+        
+        <div id="setup-section" class="space-y-6">
+            <div class="border-2 border-dashed border-slate-300 rounded-xl p-10 text-center hover:border-indigo-400 transition-colors">
+                <input type="file" id="file-input" accept=".json" class="hidden">
+                <label for="file-input" class="cursor-pointer group">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-slate-400 group-hover:text-indigo-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                    <span class="text-slate-600 font-medium">點擊上傳 words.json 檔案</span>
+                </label>
+            </div>
+            <p id="file-name" class="text-center text-xs text-slate-500 italic"></p>
+            <button id="start-btn" disabled class="w-full bg-slate-300 text-white font-bold py-4 rounded-xl cursor-not-allowed transition-all shadow-lg">請先上傳檔案</button>
+        </div>
+
+        <div id="quiz-section" class="hidden space-y-6">
+            <div class="flex justify-between items-center text-xs font-bold text-slate-400 uppercase tracking-widest">
+                <span id="progress-text">Word 0/0</span>
+                <span id="score-text" class="text-indigo-500">Score: 0</span>
+            </div>
+
+            <div class="text-center bg-slate-50 py-10 rounded-2xl border border-slate-100">
+                <button onclick="playCurrentWord()" class="bg-white shadow-md hover:shadow-lg p-6 rounded-full transition-all hover:scale-110 active:scale-90 border border-slate-100">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                    </svg>
+                </button>
+            </div>
+
+            <div class="space-y-4">
+                <input type="text" id="user-input" autocomplete="off" 
+                    class="w-full text-center text-3xl font-mono border-b-4 border-slate-200 p-2 focus:outline-none focus:border-indigo-500 transition-colors bg-transparent"
+                    placeholder="Type here...">
+                
+                <div class="flex gap-2">
+                    <button onclick="showHint('definition')" class="flex-1 bg-amber-50 text-amber-700 py-2 rounded-lg text-sm font-bold border border-amber-200 hover:bg-amber-100">中文提示</button>
+                    <button onclick="showHint('etymology')" class="flex-1 bg-blue-50 text-blue-700 py-2 rounded-lg text-sm font-bold border border-blue-200 hover:bg-blue-100">查字源 (Etymology)</button>
+                </div>
+
+                <div id="hint-display" class="hidden animate-fadeIn">
+                    <div class="bg-white border-l-4 border-indigo-400 p-4 rounded-r-lg shadow-sm">
+                        <p id="hint-type" class="text-[10px] uppercase font-black text-indigo-400 mb-1"></p>
+                        <p id="hint-content" class="text-slate-700 text-sm leading-relaxed"></p>
+                    </div>
+                </div>
+            </div>
+            
+            <p id="feedback" class="text-center font-bold h-6 transition-all"></p>
+        </div>
+    </div>
+
+    <script>
+        let wordList = [];
+        let currentIndex = 0;
+        let score = 0;
+
+        const fileInput = document.getElementById('file-input');
+        const startBtn = document.getElementById('start-btn');
+        const fileNameDisplay = document.getElementById('file-name');
+
+        // 1. 處理檔案上傳
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                fileNameDisplay.innerText = `已選取: ${file.name}`;
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    try {
+                        wordList = JSON.parse(event.target.result);
+                        startBtn.disabled = false;
+                        startBtn.classList.replace('bg-slate-300', 'bg-indigo-600');
+                        startBtn.classList.replace('cursor-not-allowed', 'hover:bg-indigo-700');
+                        startBtn.innerText = '載入成功，點擊開始';
+                    } catch (err) {
+                        alert('JSON 格式錯誤，請檢查檔案內容。');
+                    }
+                };
+                reader.readAsText(file);
+            }
+        });
+
+        startBtn.onclick = () => {
+            wordList.sort(() => Math.random() - 0.5);
+            document.getElementById('setup-section').classList.add('hidden');
+            document.getElementById('quiz-section').classList.remove('hidden');
+            showQuestion();
+        };
+
+        // 2. 核心遊戲邏輯
+        function playCurrentWord() {
+            const msg = new SpeechSynthesisUtterance(wordList[currentIndex].word);
+            msg.lang = 'en-US';
+            msg.rate = 0.85;
+            window.speechSynthesis.speak(msg);
+        }
+
+        function showQuestion() {
+            const input = document.getElementById('user-input');
+            const hintBox = document.getElementById('hint-display');
+            document.getElementById('feedback').innerText = '';
+            document.getElementById('progress-text').innerText = `Word ${currentIndex + 1}/${wordList.length}`;
+            
+            input.value = '';
+            input.className = input.className.replace('correct', '').replace('wrong', '');
+            hintBox.classList.add('hidden');
+            
+            setTimeout(playCurrentWord, 600);
+            input.focus();
+        }
+
+        // 顯示提示 (中文或字源)
+        function showHint(type) {
+            const hintBox = document.getElementById('hint-display');
+            const typeLabel = document.getElementById('hint-type');
+            const content = document.getElementById('hint-content');
+            
+            hintBox.classList.remove('hidden');
+            if (type === 'definition') {
+                typeLabel.innerText = "Definition / 中文定義";
+                content.innerText = wordList[currentIndex].definition || "無提供定義";
+            } else {
+                typeLabel.innerText = "Etymology / 字源";
+                content.innerText = wordList[currentIndex].etymology || "目前無此字源資料";
+            }
+        }
+
+        // 3. 輸入校驗
+        document.getElementById('user-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') checkAnswer();
+        });
+
+        function checkAnswer() {
+            const input = document.getElementById('user-input');
+            const feedback = document.getElementById('feedback');
+            const userAnswer = input.value.trim().toLowerCase();
+            const correctAnswer = wordList[currentIndex].word.toLowerCase();
+
+            if (userAnswer === correctAnswer) {
+                input.classList.add('correct');
+                feedback.innerText = 'EXCELLENT!';
+                feedback.className = 'text-center font-bold text-emerald-500 scale-110 transition-transform';
+                score += 10;
+                document.getElementById('score-text').innerText = `Score: ${score}`;
+                
+                setTimeout(() => {
+                    currentIndex++;
+                    if (currentIndex < wordList.length) showQuestion();
+                    else finishGame();
+                }, 1200);
+            } else {
+                input.classList.add('wrong', 'shake');
+                feedback.innerText = 'TRY AGAIN';
+                feedback.className = 'text-center font-bold text-rose-500';
+                setTimeout(() => input.classList.remove('shake'), 400);
+            }
+        }
+
+        function finishGame() {
+            alert(`練習結束！總得分：${score}`);
+            location.reload();
+        }
+    </script>
+</body>
+</html>
