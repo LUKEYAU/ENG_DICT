@@ -11,6 +11,7 @@
         @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
         .shake { animation: shake 0.2s ease-in-out 0s 2; }
         .loading-pulse { opacity: 0.5; pointer-events: none; }
+        .text-blue-600 { color: #2563EB; }
     </style>
 </head>
 <body class="bg-slate-100 min-h-screen flex items-center justify-center p-4">
@@ -52,7 +53,14 @@
 
         <div id="quiz-section" class="hidden space-y-6">
             <div class="flex justify-between items-center text-xs font-bold text-slate-400 uppercase tracking-widest">
-                <span id="progress-text">Word 0/0</span>
+                <div class="flex items-center gap-4">
+                    <button onclick="goHome()" class="hover:text-indigo-600 transition-colors flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                        </svg>返回
+                    </button>
+                    <span id="progress-text">Word 0/0</span>
+                </div>
                 <span id="score-text" class="text-indigo-500">Score: 0</span>
             </div>
 
@@ -79,7 +87,7 @@
                     </div>
                 </div>
             </div>
-
+            
             <p id="feedback" class="text-center font-bold h-6 transition-all"></p>
         </div>
     </div>
@@ -89,6 +97,7 @@
         let currentIndex = 0;
         let score = 0;
         let currentApiData = null;
+        let wrongCount = 0; 
         
         const fileInput = document.getElementById('file-input');
         const startBtn = document.getElementById('start-btn');
@@ -100,22 +109,14 @@
             const defInput = document.getElementById('new-def');
             const etyInput = document.getElementById('new-ety');
 
-            const word = wordInput.value.trim();
-            const def = defInput.value.trim();
-            const ety = etyInput.value.trim();
-
-            if (!word || !def) {
-                alert("請填寫單字與定義！");
-                return;
-            }
-
-            wordList.push({ word, definition: def, etymology: ety });
+            if (!wordInput.value.trim() || !defInput.value.trim()) return;
+            wordList.push({
+                word: wordInput.value.trim(),
+                definition: defInput.value.trim(),
+                etymology: etyInput.value.trim()
+            });
             updateUIState();
-
-            // 清空並聚焦
-            wordInput.value = '';
-            defInput.value = '';
-            etyInput.value = '';
+            wordInput.value = ''; defInput.value = ''; etyInput.value = '';
             wordInput.focus();
         }
 
@@ -124,11 +125,9 @@
             const dataStr = JSON.stringify(wordList, null, 2);
             const blob = new Blob([dataStr], { type: "application/json" });
             const url = URL.createObjectURL(blob);
-            
+
             const link = document.createElement('a');
-            link.href = url;
-            link.download = "my_words.json";
-            link.click();
+            link.href = url; link.download = "words.json"; link.click();
             URL.revokeObjectURL(url);
         }
 
@@ -138,7 +137,7 @@
                 startBtn.disabled = false;
                 startBtn.classList.replace('bg-slate-300', 'bg-indigo-600');
                 startBtn.classList.replace('cursor-not-allowed', 'hover:bg-indigo-700');
-                startBtn.innerText = `準備好了！開始練習 (${wordList.length} 個單字)`;
+                startBtn.innerText = `載入成功，開始練習 (${wordList.length} 字)`;
                 document.getElementById('download-btn').classList.remove('hidden');
             }
         }
@@ -151,12 +150,11 @@
                 const reader = new FileReader();
                 reader.onload = function(event) {
                     try {
-                        const importedWords = JSON.parse(event.target.result);
-                        wordList = [...wordList, ...importedWords]; // 合併現有與匯入
+                        wordList = JSON.parse(event.target.result);
                         updateUIState();
                     } catch (err) {
                         alert('JSON 格式錯誤');
-                    }
+                    }                
                 };
                 reader.readAsText(file);
             }
@@ -169,7 +167,18 @@
             showQuestion();
         };
 
-        // API 請求
+        // 回到主頁功能
+        function goHome() {
+            if (confirm("確定要結束練習回到主頁嗎？得分將會歸零。")) {
+                currentIndex = 0;
+                score = 0;
+                wrongCount = 0;
+                document.getElementById('score-text').innerText = `Score: 0`;
+                document.getElementById('quiz-section').classList.add('hidden');
+                document.getElementById('setup-section').classList.remove('hidden');
+            }
+        }
+
         async function fetchExternalData(word) {
             try {
                 const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`);
@@ -178,7 +187,7 @@
                 return data[0]; 
             } catch (err) {
                 return null;
-            }
+            }        
         }
 
         function playCurrentWord() {
@@ -203,7 +212,8 @@
         async function showQuestion() {
             const input = document.getElementById('user-input');
             const hintBox = document.getElementById('hint-display');
-
+            wrongCount = 0; // 重置單題錯誤次數
+            
             document.getElementById('feedback').innerText = '';
             document.getElementById('progress-text').innerText = `Word ${currentIndex + 1}/${wordList.length}`;
 
@@ -245,11 +255,23 @@
             if (e.key === 'Enter') checkAnswer();
         });
 
+        function nextWord() {
+            currentIndex++;
+            if (currentIndex < wordList.length) showQuestion();
+            else finishGame();
+        }
+
         function checkAnswer() {
             const input = document.getElementById('user-input');
             const feedback = document.getElementById('feedback');
             const userAnswer = input.value.trim().toLowerCase();
             const correctAnswer = wordList[currentIndex].word.toLowerCase();
+
+            // 如果已經錯三次，按 Enter 直接下一題
+            if (wrongCount >= 3) {
+                nextWord();
+                return;
+            }
 
             if (userAnswer === correctAnswer) {
                 input.classList.add('correct');
@@ -257,16 +279,18 @@
                 feedback.className = 'text-center font-bold text-emerald-500';
                 score += 10;
                 document.getElementById('score-text').innerText = `Score: ${score}`;
-
-                setTimeout(() => {
-                    currentIndex++;
-                    if (currentIndex < wordList.length) showQuestion();
-                    else finishGame();
-                }, 1000);
+                setTimeout(nextWord, 1000);
             } else {
+                wrongCount++;
                 input.classList.add('wrong', 'shake');
-                feedback.innerText = 'TRY AGAIN';
-                feedback.className = 'text-center font-bold text-rose-500';
+                if (wrongCount >= 3) {
+                    // 錯三次公開答案
+                    feedback.innerHTML = `ANSWER: <span class="text-blue-600">${correctAnswer.toUpperCase()}</span> (Enter to next)`; 
+                    feedback.className = 'text-center font-bold text-rose-600';
+                } else {
+                    feedback.innerText = 'TRY AGAIN';
+                    feedback.className = 'text-center font-bold text-rose-500';
+                }
                 setTimeout(() => input.classList.remove('shake', 'wrong'), 600);
             }
         }
