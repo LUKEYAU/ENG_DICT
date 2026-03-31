@@ -20,17 +20,34 @@
         <p class="text-slate-400 text-center text-sm mb-8">提升拼寫能力與字源知識</p>
         
         <div id="setup-section" class="space-y-6">
-            <div class="border-2 border-dashed border-slate-300 rounded-xl p-10 text-center hover:border-indigo-400 transition-colors">
+            <div class="border-2 border-dashed border-slate-300 rounded-xl p-6 text-center hover:border-indigo-400 transition-colors">
                 <input type="file" id="file-input" accept=".json" class="hidden">
                 <label for="file-input" class="cursor-pointer group">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-slate-400 group-hover:text-indigo-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mx-auto text-slate-400 group-hover:text-indigo-500 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                     </svg>
-                    <span class="text-slate-600 font-medium">點擊上傳 words.json 檔案</span>
+                    <span class="text-slate-600 font-medium block">上傳 words.json</span>
                 </label>
+                <p id="file-name" class="mt-2 text-xs text-slate-400 italic"></p>
             </div>
-            <p id="file-name" class="text-center text-xs text-slate-500 italic"></p>
-            <button id="start-btn" disabled class="w-full bg-slate-300 text-white font-bold py-4 rounded-xl cursor-not-allowed transition-all shadow-lg">請先上傳檔案</button>
+
+            <div class="relative">
+                <div class="absolute inset-0 flex items-center"><span class="w-full border-t border-slate-200"></span></div>
+                <div class="relative flex justify-center text-xs uppercase"><span class="bg-white px-2 text-slate-400">或者手動新增</span></div>
+            </div>
+
+            <div class="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <input type="text" id="new-word" placeholder="英文單字 (e.g. persistent)" class="w-full px-4 py-2 rounded-lg border border-slate-200 focus:ring-2 focus:ring-indigo-400 outline-none text-sm">
+                <input type="text" id="new-def" placeholder="中文定義" class="w-full px-4 py-2 rounded-lg border border-slate-200 focus:ring-2 focus:ring-indigo-400 outline-none text-sm">
+                <textarea id="new-ety" placeholder="字源故事 (選填)" class="w-full px-4 py-2 rounded-lg border border-slate-200 focus:ring-2 focus:ring-indigo-400 outline-none text-sm h-16"></textarea>
+                
+                <div class="flex gap-2">
+                    <button onclick="addNewWord()" class="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2 rounded-lg transition-all text-sm">加入列表</button>
+                    <button id="download-btn" onclick="downloadJSON()" class="flex-1 bg-slate-700 hover:bg-black text-white font-bold py-2 rounded-lg transition-all text-sm hidden">下載 JSON</button>
+                </div>
+            </div>
+
+            <button id="start-btn" disabled class="w-full bg-slate-300 text-white font-bold py-4 rounded-xl cursor-not-allowed transition-all shadow-lg mt-4">請先加入單字</button>
         </div>
 
         <div id="quiz-section" class="hidden space-y-6">
@@ -48,9 +65,7 @@
             </div>
 
             <div class="space-y-4">
-                <input type="text" id="user-input" autocomplete="off" 
-                    class="w-full text-center text-3xl font-mono border-b-4 border-slate-200 p-2 focus:outline-none focus:border-indigo-500 transition-colors bg-transparent"
-                    placeholder="Type here...">
+                <input type="text" id="user-input" autocomplete="off" class="w-full text-center text-3xl font-mono border-b-4 border-slate-200 p-2 focus:outline-none focus:border-indigo-500 transition-colors bg-transparent" placeholder="Type here...">
                 
                 <div class="flex gap-2">
                     <button onclick="showHint('definition')" class="flex-1 bg-amber-50 text-amber-700 py-2 rounded-lg text-sm font-bold border border-amber-200 hover:bg-amber-100">中文提示</button>
@@ -64,7 +79,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <p id="feedback" class="text-center font-bold h-6 transition-all"></p>
         </div>
     </div>
@@ -80,7 +95,55 @@
         const fileNameDisplay = document.getElementById('file-name');
         const audioBtn = document.getElementById('audio-btn');
 
-        // 1. 處理檔案上傳
+        function addNewWord() {
+            const wordInput = document.getElementById('new-word');
+            const defInput = document.getElementById('new-def');
+            const etyInput = document.getElementById('new-ety');
+
+            const word = wordInput.value.trim();
+            const def = defInput.value.trim();
+            const ety = etyInput.value.trim();
+
+            if (!word || !def) {
+                alert("請填寫單字與定義！");
+                return;
+            }
+
+            wordList.push({ word, definition: def, etymology: ety });
+            updateUIState();
+
+            // 清空並聚焦
+            wordInput.value = '';
+            defInput.value = '';
+            etyInput.value = '';
+            wordInput.focus();
+        }
+
+        function downloadJSON() {
+            if (wordList.length === 0) return;
+            const dataStr = JSON.stringify(wordList, null, 2);
+            const blob = new Blob([dataStr], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = "my_words.json";
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // 更新按鈕與狀態顯示
+        function updateUIState() {
+            if (wordList.length > 0) {
+                startBtn.disabled = false;
+                startBtn.classList.replace('bg-slate-300', 'bg-indigo-600');
+                startBtn.classList.replace('cursor-not-allowed', 'hover:bg-indigo-700');
+                startBtn.innerText = `準備好了！開始練習 (${wordList.length} 個單字)`;
+                document.getElementById('download-btn').classList.remove('hidden');
+            }
+        }
+
+        // 處理檔案上傳
         fileInput.addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file) {
@@ -88,13 +151,11 @@
                 const reader = new FileReader();
                 reader.onload = function(event) {
                     try {
-                        wordList = JSON.parse(event.target.result);
-                        startBtn.disabled = false;
-                        startBtn.classList.replace('bg-slate-300', 'bg-indigo-600');
-                        startBtn.classList.replace('cursor-not-allowed', 'hover:bg-indigo-700');
-                        startBtn.innerText = '載入成功，點擊開始';
+                        const importedWords = JSON.parse(event.target.result);
+                        wordList = [...wordList, ...importedWords]; // 合併現有與匯入
+                        updateUIState();
                     } catch (err) {
-                        alert('JSON 格式錯誤，請檢查檔案內容。');
+                        alert('JSON 格式錯誤');
                     }
                 };
                 reader.readAsText(file);
@@ -124,8 +185,7 @@
             if (currentApiData && currentApiData.phonetics) {
                 const audioObj = currentApiData.phonetics.find(p => p.audio && p.audio !== "");
                 if (audioObj) {
-                    const audio = new Audio(audioObj.audio);
-                    audio.play().catch(e => useWebSpeech());
+                    new Audio(audioObj.audio).play().catch(e => useWebSpeech());
                     return;
                 }
             }
@@ -143,17 +203,17 @@
         async function showQuestion() {
             const input = document.getElementById('user-input');
             const hintBox = document.getElementById('hint-display');
-            
+
             document.getElementById('feedback').innerText = '';
             document.getElementById('progress-text').innerText = `Word ${currentIndex + 1}/${wordList.length}`;
-            
+
             input.value = '';
-            input.className = input.className.replace('correct', '').replace('wrong', '');
+            input.className = "w-full text-center text-3xl font-mono border-b-4 border-slate-200 p-2 focus:outline-none focus:border-indigo-500 transition-colors bg-transparent";
             hintBox.classList.add('hidden');
             audioBtn.classList.add('loading-pulse');
             currentApiData = await fetchExternalData(wordList[currentIndex].word);
             audioBtn.classList.remove('loading-pulse');
-            
+
             setTimeout(playCurrentWord, 400);
             input.focus();
         }
@@ -172,7 +232,7 @@
                 if (currentApiData && currentApiData.meanings) {
                     const m = currentApiData.meanings[0].definitions[0];
                     def += `\n\n[API]: ${m.definition}`;
-                    if (m.example) def += `\nExample: "${m.example}"`;
+
                 }
                 content.innerText = def || "無提供定義";
             } else {
@@ -197,7 +257,7 @@
                 feedback.className = 'text-center font-bold text-emerald-500';
                 score += 10;
                 document.getElementById('score-text').innerText = `Score: ${score}`;
-                
+
                 setTimeout(() => {
                     currentIndex++;
                     if (currentIndex < wordList.length) showQuestion();
@@ -207,7 +267,7 @@
                 input.classList.add('wrong', 'shake');
                 feedback.innerText = 'TRY AGAIN';
                 feedback.className = 'text-center font-bold text-rose-500';
-                setTimeout(() => input.classList.remove('shake'), 400);
+                setTimeout(() => input.classList.remove('shake', 'wrong'), 600);
             }
         }
 
