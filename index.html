@@ -14,11 +14,23 @@
         .text-blue-600 { color: #2563EB; }
     </style>
 </head>
-<body class="bg-slate-100 min-h-screen flex items-center justify-center p-4">
+<body class="bg-slate-100 min-h-screen flex items-center justify-center p-4 relative">
 
-    <div class="bg-white p-8 rounded-3xl shadow-2xl max-w-lg w-full border border-slate-200">
-        <h1 class="text-3xl font-black text-indigo-600 mb-2 text-center">Spelling Master</h1>
-        <p class="text-slate-400 text-center text-sm mb-8">提升拼寫能力與字源知識</p>
+    <div class="absolute top-4 right-4 flex gap-3 z-10">
+        <select id="voice-accent" class="bg-white border border-slate-200 text-slate-600 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2 shadow-sm outline-none cursor-pointer">
+            <option value="en-US">🇺🇸 US Accent</option>
+            <option value="en-GB">🇬🇧 UK Accent</option>
+            <option value="en-AU">🇦🇺 AU Accent</option>
+        </select>
+        <select id="ui-lang" onchange="switchLanguage()" class="bg-white border border-slate-200 text-slate-600 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2 shadow-sm outline-none cursor-pointer">
+            <option value="en">English</option>
+            <option value="zh">中文</option>
+        </select>
+    </div>
+
+    <div class="bg-white p-8 rounded-3xl shadow-2xl max-w-lg w-full border border-slate-200 mt-10">
+        <h1 class="text-3xl font-black text-indigo-600 mb-2 text-center" data-i18n="title">Spelling Master</h1>
+        <p class="text-slate-400 text-center text-sm mb-8" data-i18n="subtitle">Improve spelling & etymology</p>
         
         <div id="setup-section" class="space-y-6">
             <div class="border-2 border-dashed border-slate-300 rounded-xl p-6 text-center hover:border-indigo-400 transition-colors">
@@ -27,28 +39,28 @@
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mx-auto text-slate-400 group-hover:text-indigo-500 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                     </svg>
-                    <span class="text-slate-600 font-medium block">上傳 words.json</span>
+                    <span class="text-slate-600 font-medium block" data-i18n="uploadLabel">Upload words.json</span>
                 </label>
                 <p id="file-name" class="mt-2 text-xs text-slate-400 italic"></p>
             </div>
 
             <div class="relative">
                 <div class="absolute inset-0 flex items-center"><span class="w-full border-t border-slate-200"></span></div>
-                <div class="relative flex justify-center text-xs uppercase"><span class="bg-white px-2 text-slate-400">或者手動新增</span></div>
+                <div class="relative flex justify-center text-xs uppercase"><span class="bg-white px-2 text-slate-400" data-i18n="orManual">OR ADD MANUALLY</span></div>
             </div>
 
             <div class="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
-                <input type="text" id="new-word" placeholder="英文單字 (e.g. persistent)" class="w-full px-4 py-2 rounded-lg border border-slate-200 focus:ring-2 focus:ring-indigo-400 outline-none text-sm">
-                <input type="text" id="new-def" placeholder="中文定義" class="w-full px-4 py-2 rounded-lg border border-slate-200 focus:ring-2 focus:ring-indigo-400 outline-none text-sm">
-                <textarea id="new-ety" placeholder="字源故事 (選填)" class="w-full px-4 py-2 rounded-lg border border-slate-200 focus:ring-2 focus:ring-indigo-400 outline-none text-sm h-16"></textarea>
+                <input type="text" id="new-word" data-i18n-placeholder="phWord" placeholder="Word (e.g. persistent)" class="w-full px-4 py-2 rounded-lg border border-slate-200 focus:ring-2 focus:ring-indigo-400 outline-none text-sm">
+                <input type="text" id="new-def" data-i18n-placeholder="phDef" placeholder="Definition" class="w-full px-4 py-2 rounded-lg border border-slate-200 focus:ring-2 focus:ring-indigo-400 outline-none text-sm">
+                <textarea id="new-ety" data-i18n-placeholder="phEty" placeholder="Etymology (optional)" class="w-full px-4 py-2 rounded-lg border border-slate-200 focus:ring-2 focus:ring-indigo-400 outline-none text-sm h-16"></textarea>
                 
                 <div class="flex gap-2">
-                    <button onclick="addNewWord()" class="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2 rounded-lg transition-all text-sm">加入列表</button>
-                    <button id="download-btn" onclick="downloadJSON()" class="flex-1 bg-slate-700 hover:bg-black text-white font-bold py-2 rounded-lg transition-all text-sm hidden">下載 JSON</button>
+                    <button onclick="addNewWord()" class="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2 rounded-lg transition-all text-sm" data-i18n="addBtn">Add to List</button>
+                    <button id="download-btn" onclick="downloadJSON()" class="flex-1 bg-slate-700 hover:bg-black text-white font-bold py-2 rounded-lg transition-all text-sm hidden" data-i18n="downloadBtn">Download JSON</button>
                 </div>
             </div>
 
-            <button id="start-btn" disabled class="w-full bg-slate-300 text-white font-bold py-4 rounded-xl cursor-not-allowed transition-all shadow-lg mt-4">請先加入單字</button>
+            <button id="start-btn" disabled class="w-full bg-slate-300 text-white font-bold py-4 rounded-xl cursor-not-allowed transition-all shadow-lg mt-4" data-i18n="startBtnEmpty">Add words to start</button>
         </div>
 
         <div id="quiz-section" class="hidden space-y-6">
@@ -57,7 +69,7 @@
                     <button onclick="goHome()" class="hover:text-indigo-600 transition-colors flex items-center">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                        </svg>返回
+                        </svg><span data-i18n="backBtn">Back</span>
                     </button>
                     <span id="progress-text">Word 0/0</span>
                 </div>
@@ -76,8 +88,8 @@
                 <input type="text" id="user-input" autocomplete="off" class="w-full text-center text-3xl font-mono border-b-4 border-slate-200 p-2 focus:outline-none focus:border-indigo-500 transition-colors bg-transparent" placeholder="Type here...">
                 
                 <div class="flex gap-2">
-                    <button onclick="showHint('definition')" class="flex-1 bg-amber-50 text-amber-700 py-2 rounded-lg text-sm font-bold border border-amber-200 hover:bg-amber-100">中文提示</button>
-                    <button onclick="showHint('etymology')" class="flex-1 bg-blue-50 text-blue-700 py-2 rounded-lg text-sm font-bold border border-blue-200 hover:bg-blue-100">查字源 (Etymology)</button>
+                    <button onclick="showHint('definition')" class="flex-1 bg-amber-50 text-amber-700 py-2 rounded-lg text-sm font-bold border border-amber-200 hover:bg-amber-100" data-i18n="hintDef">Hint (Definition)</button>
+                    <button onclick="showHint('etymology')" class="flex-1 bg-blue-50 text-blue-700 py-2 rounded-lg text-sm font-bold border border-blue-200 hover:bg-blue-100" data-i18n="hintEty">Hint (Etymology)</button>
                 </div>
 
                 <div id="hint-display" class="hidden animate-fadeIn">
@@ -93,6 +105,71 @@
     </div>
 
     <script>
+        //i18n
+        const dict = {
+            en: {
+                title: "Spelling Master",
+                subtitle: "Improve spelling & etymology",
+                uploadLabel: "Upload words.json",
+                orManual: "OR ADD MANUALLY",
+                phWord: "Word (e.g. persistent)",
+                phDef: "Definition",
+                phEty: "Etymology (optional)",
+                addBtn: "Add to List",
+                downloadBtn: "Download JSON",
+                startBtnEmpty: "Add words to start",
+                startBtnReady: "Start Quiz",
+                backBtn: "Back",
+                hintDef: "Hint (Definition)",
+                hintEty: "Hint (Etymology)",
+                alertJsonError: "Invalid JSON format",
+                confirmBack: "Are you sure you want to exit? Your score will be reset.",
+                noEty: "No etymology available in JSON.",
+                noDef: "No definition provided.",
+                alertFinish: "Quiz finished! Total score: "
+            },
+            zh: {
+                title: "Spelling Master",
+                subtitle: "提升拼寫能力與字源知識",
+                uploadLabel: "上傳 words.json",
+                orManual: "或者手動新增",
+                phWord: "英文單字 (e.g. persistent)",
+                phDef: "中文定義 / Definition",
+                phEty: "字源故事 (選填)",
+                addBtn: "加入列表",
+                downloadBtn: "下載 JSON",
+                startBtnEmpty: "請先加入單字",
+                startBtnReady: "開始練習",
+                backBtn: "返回",
+                hintDef: "中文提示",
+                hintEty: "查字源 (Etymology)",
+                alertJsonError: "JSON 格式錯誤",
+                confirmBack: "確定要結束練習回到主頁嗎？得分將會歸零。",
+                noEty: "目前 JSON 無此字源資料。",
+                noDef: "無提供定義",
+                alertFinish: "練習結束！總得分："
+            }
+        };
+
+        let currentLang = 'en';
+
+        // 語言切換
+        function switchLanguage() {
+            currentLang = document.getElementById('ui-lang').value;
+            
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (dict[currentLang][key]) el.innerText = dict[currentLang][key];
+            });
+
+            document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+                const key = el.getAttribute('data-i18n-placeholder');
+                if (dict[currentLang][key]) el.placeholder = dict[currentLang][key];
+            });
+
+            updateUIState();
+        }
+
         let wordList = [];
         let currentIndex = 0;
         let score = 0;
@@ -103,6 +180,8 @@
         const startBtn = document.getElementById('start-btn');
         const fileNameDisplay = document.getElementById('file-name');
         const audioBtn = document.getElementById('audio-btn');
+
+        switchLanguage();
 
         function addNewWord() {
             const wordInput = document.getElementById('new-word');
@@ -131,29 +210,32 @@
             URL.revokeObjectURL(url);
         }
 
-        // 更新按鈕與狀態顯示
         function updateUIState() {
             if (wordList.length > 0) {
                 startBtn.disabled = false;
                 startBtn.classList.replace('bg-slate-300', 'bg-indigo-600');
                 startBtn.classList.replace('cursor-not-allowed', 'hover:bg-indigo-700');
-                startBtn.innerText = `載入成功，開始練習 (${wordList.length} 字)`;
+                startBtn.innerText = `${dict[currentLang].startBtnReady} (${wordList.length})`;
                 document.getElementById('download-btn').classList.remove('hidden');
+            } else {
+                startBtn.disabled = true;
+                startBtn.classList.replace('bg-indigo-600', 'bg-slate-300');
+                startBtn.classList.replace('hover:bg-indigo-700', 'cursor-not-allowed');
+                startBtn.innerText = dict[currentLang].startBtnEmpty;
             }
         }
 
-        // 處理檔案上傳
         fileInput.addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file) {
-                fileNameDisplay.innerText = `已選取: ${file.name}`;
+                fileNameDisplay.innerText = file.name;
                 const reader = new FileReader();
                 reader.onload = function(event) {
                     try {
                         wordList = JSON.parse(event.target.result);
                         updateUIState();
                     } catch (err) {
-                        alert('JSON 格式錯誤');
+                        alert(dict[currentLang].alertJsonError);
                     }                
                 };
                 reader.readAsText(file);
@@ -167,9 +249,8 @@
             showQuestion();
         };
 
-        // 回到主頁功能
         function goHome() {
-            if (confirm("確定要結束練習回到主頁嗎？得分將會歸零。")) {
+            if (confirm(dict[currentLang].confirmBack)) {
                 currentIndex = 0;
                 score = 0;
                 wrongCount = 0;
@@ -190,36 +271,28 @@
             }        
         }
 
+        //Web Speech API
         function playCurrentWord() {
-            if (currentApiData && currentApiData.phonetics) {
-                const audioObj = currentApiData.phonetics.find(p => p.audio && p.audio !== "");
-                if (audioObj) {
-                    new Audio(audioObj.audio).play().catch(e => useWebSpeech());
-                    return;
-                }
-            }
-            useWebSpeech();
-        }
-
-        function useWebSpeech() {
+            window.speechSynthesis.cancel();
             const msg = new SpeechSynthesisUtterance(wordList[currentIndex].word);
-            msg.lang = 'en-US';
+            
+            msg.lang = document.getElementById('voice-accent').value; 
             msg.rate = 0.8;
             window.speechSynthesis.speak(msg);
         }
 
-        // 顯示題目
         async function showQuestion() {
             const input = document.getElementById('user-input');
             const hintBox = document.getElementById('hint-display');
-            wrongCount = 0; // 重置單題錯誤次數
+            wrongCount = 0; 
             
             document.getElementById('feedback').innerText = '';
             document.getElementById('progress-text').innerText = `Word ${currentIndex + 1}/${wordList.length}`;
 
             input.value = '';
-            input.className = "w-full text-center text-3xl font-mono border-b-4 border-slate-200 p-2 focus:outline-none focus:border-indigo-500 transition-colors bg-transparent";
+            input.classList.remove('correct', 'wrong', 'shake');
             hintBox.classList.add('hidden');
+            
             audioBtn.classList.add('loading-pulse');
             currentApiData = await fetchExternalData(wordList[currentIndex].word);
             audioBtn.classList.remove('loading-pulse');
@@ -228,7 +301,6 @@
             input.focus();
         }
 
-        // 顯示提示
         function showHint(type) {
             const hintBox = document.getElementById('hint-display');
             const typeLabel = document.getElementById('hint-type');
@@ -237,22 +309,24 @@
             hintBox.classList.remove('hidden');
 
             if (type === 'definition') {
-                typeLabel.innerText = "Definition / 詳細定義";
+                typeLabel.innerText = "Definition";
                 let def = wordList[currentIndex].definition || "";
                 if (currentApiData && currentApiData.meanings) {
                     const m = currentApiData.meanings[0].definitions[0];
                     def += `\n\n[API]: ${m.definition}`;
-
                 }
-                content.innerText = def || "無提供定義";
+                content.innerText = def || dict[currentLang].noDef;
             } else {
-                typeLabel.innerText = "Etymology / 字源";
-                content.innerText = wordList[currentIndex].etymology || "目前 JSON 無此字源資料。";
+                typeLabel.innerText = "Etymology";
+                content.innerText = wordList[currentIndex].etymology || dict[currentLang].noEty;
             }
         }
 
         document.getElementById('user-input').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') checkAnswer();
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                checkAnswer();
+            }
         });
 
         function nextWord() {
@@ -267,24 +341,25 @@
             const userAnswer = input.value.trim().toLowerCase();
             const correctAnswer = wordList[currentIndex].word.toLowerCase();
 
-            // 如果已經錯三次，按 Enter 直接下一題
             if (wrongCount >= 3) {
                 nextWord();
                 return;
             }
 
             if (userAnswer === correctAnswer) {
+                input.classList.remove('wrong');
                 input.classList.add('correct');
-                feedback.innerText = 'EXCELLENT! ';
+                feedback.innerText = 'EXCELLENT!';
                 feedback.className = 'text-center font-bold text-emerald-500';
                 score += 10;
                 document.getElementById('score-text').innerText = `Score: ${score}`;
                 setTimeout(nextWord, 1000);
             } else {
                 wrongCount++;
+                input.classList.remove('correct');
                 input.classList.add('wrong', 'shake');
+                
                 if (wrongCount >= 3) {
-                    // 錯三次公開答案
                     feedback.innerHTML = `ANSWER: <span class="text-blue-600">${correctAnswer.toUpperCase()}</span> (Enter to next)`; 
                     feedback.className = 'text-center font-bold text-rose-600';
                 } else {
@@ -296,7 +371,7 @@
         }
 
         function finishGame() {
-            alert(`練習結束！總得分：${score}`);
+            alert(`${dict[currentLang].alertFinish}${score}`);
             location.reload();
         }
     </script>
