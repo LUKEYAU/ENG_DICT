@@ -1,11 +1,10 @@
 英文生字學習工具 - Spelling Master
 
 
-## 使用
+## 操作手冊
 
-
-1. **準備題庫**：建立一個 `words.json` 檔案（格式參考下方）。
-2. **啟動工具**：開啟 `index.html` 或訪問部署好的 GitHub Pages。
+1. **啟動工具** 點擊開啟 https://lukeyau.github.io/ENG_DICT/ 即可執行
+2. **準備題庫**：建立一個 `words.json` 檔案（格式參考下方）或者在下方表單手動輸入單字 (Word)、定義 (Definition) 與字源 (Etymology)
 3. **上傳檔案**：點擊上傳區域選擇你的 `.json` 檔案。
 4. **開始練習**
 
